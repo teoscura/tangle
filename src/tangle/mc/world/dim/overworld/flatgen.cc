@@ -1,9 +1,9 @@
-#include <mc/world/dim/overworld/flatgen.hh>
+#include <mc/world/overworld/flatgen.hh>
 
 namespace tangle::mc::world::overworld {
 
 flatgen::flatgen()
-: worldgen(0) {}
+: overworld_worldgen(0) {}
 
 std::shared_ptr<chunk> flatgen::gen_chunk(int32_t cx, int32_t cz) {
     std::array<block, 16*16*128> blocks;

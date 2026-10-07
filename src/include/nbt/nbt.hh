@@ -4,10 +4,11 @@
 #include <cstdint>
 #include <endian.h>
 #include <fstream>
-
-#include <common/bytestream.hh>
+#include <print>
 #include <memory>
 #include <unordered_map>
+
+#include <common/bytestream.hh>
 
 namespace tangle::nbt {
 
@@ -29,7 +30,7 @@ enum class tag_type : uint8_t {
 
 class nbt_payload {
 public:
-    virtual void serialize(std::vector<uint8_t>& buf) const = 0;
+    virtual std::size_t serialize(std::ofstream& str) const = 0;
     virtual ~nbt_payload() {};
 };
 
@@ -45,7 +46,7 @@ public:
     std::string name() const;
     std::shared_ptr<nbt_payload> payload();
     void set(std::shared_ptr<nbt_payload> payload);
-    void serialize(std::vector<uint8_t>& vec) const;
+    std::size_t serialize(std::ofstream& buf) const;
 };
 
 template<common::Numeric T>
@@ -59,10 +60,13 @@ public:
         return m_value;
     }
 
-    virtual void serialize(std::vector<uint8_t>& buf) const override {
-        buf.reserve(buf.size()+sizeof(T));
-        common::bebyteostream str(buf.data()+buf.size(), buf.capacity()-buf.size());
-        str << m_value;
+    virtual std::size_t serialize(std::ofstream& str) const override {
+        std::println("writing numeric payload of size {}", sizeof(T));
+        auto b = (uint8_t*) &m_value;
+        for(int i = sizeof(T) - 1; i >= 0 ; i--) {
+            str.put(b[i]);
+        }
+        return sizeof(T);
     }
 
     virtual ~nbt_numeric() override {} 
@@ -79,14 +83,17 @@ public:
         return m_array;
     }
 
-    virtual void serialize(std::vector<uint8_t>& buf) const override {
-        buf.reserve(buf.size()+sizeof(T)*m_array.size());
-        common::bebyteostream str(buf.data()+buf.size(), buf.capacity()-buf.size());
-        uint16_t size = m_array.size();
-        str << size;
+    virtual std::size_t serialize(std::ofstream& str) const override {
+        std::println("writing numeric array payload of size/length {}/{}", sizeof(T), m_array.size());
+        uint16_t size = htobe16(m_array.size());
+        str.write((char*)&size, 2);
         for(const auto& ref : m_array) {
-            str << ref;
+            auto b = (uint8_t*) &ref;
+            for(int i = sizeof(T) - 1; i >= 0 ; i--) {
+                str.put(b[i]);
+            }
         }
+        return 2 + sizeof(T) * m_array.size();
     }
 
     virtual ~nbt_array() override {} 
@@ -97,7 +104,7 @@ class nbt_string : public nbt_payload {
 public:
     nbt_string(std::string value);
     std::string string() const;
-    virtual void serialize(std::vector<uint8_t>& buf) const override;
+    virtual std::size_t serialize(std::ofstream& str) const override;
     virtual ~nbt_string() override;
 };
 
@@ -108,7 +115,7 @@ public:
     nbt_list(tag_type type, std::vector<std::shared_ptr<nbt_payload>> contents);
     tag_type get_type() const;
     std::vector<std::shared_ptr<nbt_payload>>& contents();
-    virtual void serialize(std::vector<uint8_t>& buf) const override;
+    virtual std::size_t serialize(std::ofstream& str) const override;
     virtual ~nbt_list() override;
 };
 
@@ -119,7 +126,7 @@ public:
     nbt_compound(std::vector<nbt_tag> fields);
     std::vector<nbt_tag>& fields();
     nbt_tag get_field(std::string name);
-    virtual void serialize(std::vector<uint8_t>& buf) const override;
+    virtual std::size_t serialize(std::ofstream& str) const override;
     virtual ~nbt_compound() override;
 };
 

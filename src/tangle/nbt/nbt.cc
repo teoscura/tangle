@@ -1,5 +1,6 @@
 #include "common/bytestream.hh"
 #include <bit>
+#include <cstddef>
 #include <cstdint>
 #include <stack>
 #include <memory>
@@ -34,13 +35,12 @@ void nbt_tag::set(std::shared_ptr<nbt_payload> payload) {
     m_payload = payload;
 }
 
-void nbt_tag::serialize(std::vector<uint8_t>& vec) const {
-    vec.reserve(vec.size() + m_name.length() + 3);
-    common::bebyteostream str(vec.data()+vec.size(), vec.capacity()-vec.size());
-    uint8_t tag = static_cast<uint8_t>(m_tag);
-    str << tag;
-    str << m_name;
-    m_payload->serialize(vec);
+std::size_t nbt_tag::serialize(std::ofstream& str) const {
+    str.put(static_cast<uint8_t>(m_tag));
+    uint16_t len = htobe16(m_name.length());
+    str.write((char*)&len, 2);
+    str.write(m_name.data(), m_name.length());
+    return m_name.length() + 3 + m_payload->serialize(str);
 }
 
 nbt_string::nbt_string(std::string value)
@@ -50,10 +50,12 @@ std::string nbt_string::string() const {
     return m_string;
 }
 
-void nbt_string::serialize(std::vector<uint8_t>& buf) const {
-    buf.reserve(buf.size() + m_string.length() + 2);
-    common::bebyteostream str(buf.data()+buf.size(), buf.capacity()-buf.size());
-    str << m_string;
+std::size_t nbt_string::serialize(std::ofstream& str) const {
+    std::println("writing string size {}", m_string.length());
+    uint16_t len = htobe16(m_string.length());
+    str.write((char*)&len, 2);
+    str.write(m_string.data(), m_string.length());
+    return 2 + m_string.length();
 }
 
 nbt_string::~nbt_string() {}
@@ -70,16 +72,17 @@ std::vector<std::shared_ptr<nbt_payload>>& nbt_list::contents() {
     return m_contents;
 }
 
-void nbt_list::serialize(std::vector<uint8_t>& buf) const {
-    buf.reserve(buf.size() + 3);
-    common::bebyteostream str(buf.data()+buf.size(), buf.capacity()-buf.size());
-    uint16_t len = m_contents.size();
+std::size_t nbt_list::serialize(std::ofstream& str) const {
+    std::println("writing list of size {}", m_contents.size());
+    uint32_t len = htobe32(m_contents.size());
     uint8_t tag = static_cast<uint8_t>(m_content_type);
-    str << tag;
-    str << len;
+    str.put(tag);
+    str.write((char*)&len, 4);
+    std::size_t w = 0;
     for(const auto& ref : m_contents) {
-        ref->serialize(buf);
+        w += ref->serialize(str);
     }
+    return w + 3;
 }
 
 nbt_list::~nbt_list() {}
@@ -101,12 +104,14 @@ nbt_tag nbt_compound::get_field(std::string name) {
     return tag;
 }
 
-void nbt_compound::serialize(std::vector<uint8_t>& buf) const {
-    buf.reserve(buf.size()+3*m_fields.size());
-    for(const auto& ref : m_fields) {
-        ref.second.serialize(buf);
+std::size_t nbt_compound::serialize(std::ofstream& str) const {
+    std::println("writing compound of fields {}", m_fields.size());
+    std::size_t w = 0;
+    for(const auto& ref : m_original) {
+        w += ref.serialize(str);
     }
-    buf.push_back(static_cast<uint8_t>(tag_type::nbt_end));
+    str.put(static_cast<uint8_t>(tag_type::nbt_end));
+    return w + 1;
 }
 
 nbt_compound::~nbt_compound() {}
@@ -115,10 +120,10 @@ nbt_writer::nbt_writer(std::ofstream file)
 : m_file(std::move(file)) {}
     
 std::size_t nbt_writer::write(nbt_tag root) {
-    std::vector<uint8_t> vec(0x1000);
-    root.serialize(vec);
-    m_file << vec.data();
-    return vec.size();
+    std::println("starting write");
+    std::size_t w = root.serialize(m_file);
+    std::println("writing strfer into file");
+    return w;
 }
 
 int nbt_writer::close() {

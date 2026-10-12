@@ -1,4 +1,11 @@
+file(GLOB_RECURSE TANGLE_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    *.cc)
+
 add_executable(tangle
-    "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp"
+    ${TANGLE_SRC}
 )
 
+target_include_directories(tangle PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/../include"
+)

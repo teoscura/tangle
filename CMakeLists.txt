@@ -10,10 +10,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(RC_ENABLE_WARNINGS "Enable compiler warnings" ON)
-add_compile_options(-Wall -Wextra -Wpedantic)
+add_compile_options(-Wall -Wextra -Wpedantic -g)
 
 option(RELEASE "Release build" ON)
-add_compile_options(-O3)
+add_compile_options(-O3 -g)
 
 find_package(Boost REQUIRED)
 find_package(GTest REQUIRED)

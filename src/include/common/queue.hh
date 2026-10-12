@@ -32,7 +32,7 @@ template<typename T>
 std::vector<T> queue<T>::pending() {
     std::unique_lock<std::mutex> lck(m_mtx);
     if(m_queue.empty()) m_cv.wait(lck);
-    std::vector<T> res;
+    std::vector<T> res(m_queue.size());
     while(!m_queue.empty()) {
         auto t = std::move(m_queue.front());
         m_queue.pop_front();

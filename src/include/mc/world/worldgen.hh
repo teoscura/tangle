@@ -1,8 +1,9 @@
 #ifndef TANGLE_MC_WORLD_WORLDGEN_H
 #define TANGLE_MC_WORLD_WORLDGEN_H
 
-#include "mc/world/chunk.hh"
 #include <memory>
+
+#include "mc/world/chunk.hh"
 
 namespace tangle::mc::world {
 

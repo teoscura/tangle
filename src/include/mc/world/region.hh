@@ -4,30 +4,38 @@
 #include <unordered_map>
 
 #include <common/vector.hh>
+#include <common/queue.hh>
+#include <mc/event/base_event.hh>
 #include <mc/world/chunk.hh>
-#include <mc/entity/entity_registry.hh>
+#include <mc/entity/registry.hh>
 
 namespace tangle::mc::world {
 
-using namespace tangle::common;
-using namespace tangle::mc::entity;
+using namespace common;
+using namespace event;
+using namespace entity;
 
 class dimension;
 
 class region {
     dimension& m_parent;
     int2 m_region_coords;
+    uint64_t m_current_tick;
+    std::atomic<bool> m_running;
+    registry m_registry;
     std::unordered_map<int2, chunk_record> m_chunks;
-    entity_registry m_registry;
+    queue<std::unique_ptr<base_event>> m_queue;
 public:
     region(dimension& parent, int2 region_coords);
-    region(dimension& parent, int2 region_coords, std::unordered_map<int2, chunk_record> map);
-    region(dimension& parent, int2 region_coords, std::unordered_map<int2, chunk_record> map, entity_registry entities);
+    region(dimension& parent, int2 region_coords, std::unordered_map<int2, chunk_record> map, registry entities);
+    //Locally called:
     bool load_chunk_or(int2 coords);
     std::size_t unload_chunk(int2 coords);
-    entity_registry& get_registry();
-    const entity_registry& get_registry() const;
-    std::size_t unload_and_save();
+    registry& get_registry();
+    const registry& get_registry() const;
+    //Remotely called:
+    std::size_t halt_and_save();
+    void main_loop();
     ~region();
 };
 

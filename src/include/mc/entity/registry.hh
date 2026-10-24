@@ -11,7 +11,7 @@
 
 namespace tangle::mc::entity {
 
-class entity_registry {
+class registry {
     eid_authority& m_auth;
     std::unordered_map<uint32_t, std::shared_ptr<base_entity>> m_entities;
     std::vector<uint32_t> m_block_entities;
@@ -19,12 +19,12 @@ class entity_registry {
     std::vector<uint32_t> m_npc_entities;
     std::vector<uint32_t> m_players;
 public: 
-    entity_registry(eid_authority& auth, std::size_t initial_size); 
+    registry(eid_authority& auth, std::size_t initial_size); 
     bool insert_entity(std::shared_ptr<base_entity> entity);
     std::shared_ptr<base_entity> get_entity(uint32_t eid);
     bool exists_entity(uint32_t eid) const;
     bool remove_entity(uint32_t eid);
-    ~entity_registry();
+    ~registry();
 };
 
 }

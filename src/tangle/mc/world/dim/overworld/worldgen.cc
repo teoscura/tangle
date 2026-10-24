@@ -1,4 +1,4 @@
-#include <mc/world/dim/overworld/worldgen.hh>
+#include <mc/world/overworld/worldgen.hh>
 
 namespace tangle::mc::world::overworld {
 
